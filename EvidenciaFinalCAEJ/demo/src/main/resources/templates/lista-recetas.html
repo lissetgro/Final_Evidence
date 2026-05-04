@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis Recetas | Recetario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #6366f1; --bg-light: #f8fafc; }
+        body { background-color: var(--bg-light); font-family: 'Inter', system-ui, sans-serif; }
+        .navbar { background: white !important; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .navbar-brand { font-weight: 700; color: #1e293b !important; }
+        .card { border-radius: 1rem; border: none; overflow: hidden; }
+        .recipe-name-link { color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 1.1rem; }
+        .recipe-detail-card { background: #ffffff; border-left: 4px solid var(--primary-color); padding: 1.5rem; margin: 1rem 0; border-radius: 0.5rem; }
+        
+        /* Estilos del Buscador */
+        .search-container { background: white; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .form-select-custom { max-width: 180px; border-radius: 0.5rem 0 0 0.5rem; border-right: none; }
+        .search-input-custom { border-radius: 0 0.5rem 0.5rem 0; }
+        .search-input-custom:focus { border-color: #dee2e6; box-shadow: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">🍳 RecetarioDigital</a>
+            <div class="ms-auto">
+                <a th:href="@{/}" class="btn btn-link text-muted text-decoration-none">Ir al Inicio</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h2 class="fw-bold text-dark m-0">Mis Recetas</h2>
+            </div>
+            <div class="col-auto">
+                <a th:href="@{/recetas/nuevo}" class="btn btn-primary px-4 shadow-sm" style="border-radius: 0.5rem; font-weight: 600;">+ Nueva Receta</a>
+            </div>
+        </div>
+
+        <!-- BARRA DE BÚSQUEDA CON FILTROS -->
+        <div class="search-container">
+            <div class="input-group">
+                <select class="form-select form-select-custom bg-light" id="filtroBusqueda">
+                    <option value="receta" selected>Por Receta</option>
+                    <option value="ingrediente">Por Ingrediente</option>
+                </select>
+                <input type="text" id="inputBusqueda" class="form-control search-input-custom" placeholder="Escribe para buscar..." onkeyup="filtrarRecetas()">
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0" id="tablaRecetas">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 py-3">Receta</th>
+                            <th class="text-end pe-4 py-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <th:block th:each="receta : ${lista}">
+                            <!-- Añadimos data-attributes para que JS pueda leer los ingredientes sin abrir el colapso -->
+                            <tr class="fila-receta" 
+                                th:data-nombre="${receta.nombre.toLowerCase()}" 
+                                th:data-ingredientes="${receta.ingredientes.toLowerCase()}">
+                                <td class="ps-4 py-3">
+                                    <a class="recipe-name-link" data-bs-toggle="collapse" th:href="'#collapse' + ${receta.id}" th:text="${receta.nombre}"></a>
+
+                                    <div class="collapse" th:id="'collapse' + ${receta.id}">
+                                        <div class="recipe-detail-card">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="fw-bold text-muted small text-uppercase mb-2">Ingredientes</div>
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li th:each="ing : ${#strings.arraySplit(receta.ingredientes, ',')}" class="mb-1">
+                                                            <span class="text-primary me-2">•</span><span th:text="${ing}"></span>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <div class="fw-bold text-muted small text-uppercase mb-2">Instrucciones</div>
+                                                    <p class="text-secondary small" style="white-space: pre-line;" th:text="${receta.instrucciones}"></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end pe-4 py-3">
+                                    <div class="btn-group">
+                                        <a th:href="@{/recetas/editar/{id}(id=${receta.id})}" class="btn btn-sm btn-outline-primary px-3">Editar</a>
+                                        <a th:href="@{/recetas/eliminar/{id}(id=${receta.id})}" class="btn btn-sm btn-outline-danger px-3" onclick="return confirm('¿Eliminar receta?')">Eliminar</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </th:block>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA DE BÚSQUEDA -->
+    <script>
+        function filtrarRecetas() {
+            const texto = document.getElementById('inputBusqueda').value.toLowerCase();
+            const filtro = document.getElementById('filtroBusqueda').value;
+            const filas = document.getElementsByClassName('fila-receta');
+
+            Array.from(filas).forEach(fila => {
+                // Obtenemos los datos desde los atributos data- que pusimos en el HTML
+                const nombre = fila.getAttribute('data-nombre');
+                const ingredientes = fila.getAttribute('data-ingredientes');
+                
+                let coincide = false;
+                if (filtro === 'receta') {
+                    coincide = nombre.includes(texto);
+                } else {
+                    coincide = ingredientes.includes(texto);
+                }
+
+                // Mostramos u ocultamos la fila
+                fila.style.display = coincide ? "" : "none";
+            });
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
